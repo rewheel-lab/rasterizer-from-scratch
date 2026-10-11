@@ -1,0 +1,13 @@
+# Visual Studio が作るファイル
+.vs/
+*.user
+x64/
+Win32/
+Debug/
+Release/
+
+# ビルド結果は配布しない
+*.exe
+*.pdb
+*.ilk
+*.obj

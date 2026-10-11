@@ -1,0 +1,5 @@
+* text=auto
+# Visual Studio のファイルは改行を CRLF に固定する
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf
