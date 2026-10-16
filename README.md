@@ -1,3 +1,4 @@
+English: [README.en.md](README.en.md)
 # rasterizer-from-scratch
 
 YouTube チャンネル「車輪の再発明ラボ」で、C++ を使ってソフトウェアラスタライザーを一から作っている動画シリーズのコードです。
