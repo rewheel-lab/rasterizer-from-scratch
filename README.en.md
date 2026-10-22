@@ -24,6 +24,12 @@ Each episode has two folders:
 
 If you get stuck in one episode, you can continue from the `_start` folder of a later episode.
 
+## Experiment programs for the extra episodes
+
+The `extra/` folder contains the experiment programs used in the extra episodes. Each folder is one Visual Studio project: double-click its `.sln` file and press F5.
+
+`extra/fill_rule` (the extra episode "The Fill Rule") adds two things to the triangle filling of Rasterizer Episode 4: a switch for the rule that decides which triangle paints a pixel that lies exactly on an edge (the fill rule), and a zoomed view. Choose a picture with the 1 to 5 keys, and switch the rule with T (top-left rule), B (bottom-right rule), G (paint only "> 0"), and E (paint ">= 0"). V switches the view: one picture, two pictures side by side, or the differences in red. Z and X zoom in and out, and the arrow keys move the view. C shows the pixel borders and the marks at the pixel centers, W draws the edges of the triangles, and A shows how many times each pixel was painted (pixels painted twice look brighter). Esc quits.
+
 ## License
 
 This project is licensed under the MIT License. See `LICENSE`. You may modify it and use it in your own projects.
