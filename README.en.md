@@ -30,6 +30,8 @@ The `extra/` folder contains the experiment programs used in the extra episodes.
 
 `extra/fill_rule` (the extra episode "The Fill Rule") adds two things to the triangle filling of Rasterizer Episode 4: a switch for the rule that decides which triangle paints a pixel that lies exactly on an edge (the fill rule), and a zoomed view. Choose a picture with the 1 to 5 keys, and switch the rule with T (top-left rule), B (bottom-right rule), G (paint only "> 0"), and E (paint ">= 0"). V switches the view: one picture, two pictures side by side, or the differences in red. Z and X zoom in and out, and the arrow keys move the view. C shows the pixel borders and the marks at the pixel centers, W draws the edges of the triangles, and A shows how many times each pixel was painted (pixels painted twice look brighter). Esc quits.
 
+`extra/bresenham` (the extra episode "Bresenham: Drawing Lines with Integers Only") places the line drawing of Rasterizer episode #02 (DDA) next to Bresenham's line algorithm, which draws lines with integers only, and highlights the pixels that differ in red. Keys 1 to 4 switch scenes (1: the #02 fireworks side by side, 2: the same fireworks in one image with the differences in red, 3 and 4: one enlarged line that shows the accumulated error as numbers). V switches the view, and Z, X, and the arrow keys zoom and move. F counts the lines where DDA and Bresenham differ. The full list of keys is in the comment at the top of `main.cpp`.
+
 ## License
 
 This project is licensed under the MIT License. See `LICENSE`. You may modify it and use it in your own projects.
