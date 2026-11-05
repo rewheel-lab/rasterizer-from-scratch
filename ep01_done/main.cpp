@@ -2,9 +2,9 @@
 
 #include "framework/canvas.h"
 
-// (x, y) のピクセルを color にする
+// (x, y) のピクセルを color にする / Set the pixel at (x, y) to color.
 void set_pixel(Canvas& canvas, int x, int y, Color color) {
-    // 画面の外は何もしない。はみ出して pixels の外を書くと、プログラムが壊れるため
+    // 画面の外は何もしない。はみ出して pixels の外を書くと、プログラムが壊れるため / Skip off-screen points. Writing outside pixels breaks the program.
     if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
         return;
     }
@@ -12,10 +12,10 @@ void set_pixel(Canvas& canvas, int x, int y, Color color) {
 }
 
 int main() {
-    Canvas canvas(320, 180, 4);  // 320×180 の絵を、4倍に拡大して表示する
+    Canvas canvas(320, 180, 4);  // 320×180 の絵を、4倍に拡大して表示する / Draw at 320x180 and show it 4x larger.
 
     while (canvas.update()) {
-        // 画面全体を塗る。赤は x に、緑は y に合わせて 0〜255 に変える
+        // 画面全体を塗る。赤は x に、緑は y に合わせて 0〜255 に変える / Fill the screen. Red follows x and green follows y, from 0 to 255.
         for (int y = 0; y < canvas.height; y++) {
             for (int x = 0; x < canvas.width; x++) {
                 const uint8_t r = static_cast<uint8_t>(x * 255 / (canvas.width - 1));
@@ -24,7 +24,7 @@ int main() {
             }
         }
 
-        // x = 100 に白い縦線を引く。y は 0 〜 height - 1 なので、< で止める
+        // x = 100 に白い縦線を引く。y は 0 〜 height - 1 なので、< で止める / Vertical line at x = 100. y ends at height - 1, so use <.
         const Color white = {255, 255, 255};
         for (int y = 0; y < canvas.height; y++) {
             set_pixel(canvas, 100, y, white);
