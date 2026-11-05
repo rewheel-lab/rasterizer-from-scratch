@@ -1,37 +1,37 @@
-// 番外編「ブレゼンハム：整数だけで線を引く」の実験用プログラム
-// ラスタライザー編 #02 の線の引き方（DDA）と、小数を使わずに整数だけで引くブレゼンハムを並べて、違うピクセルを赤く光らせる
-// ブレゼンハムは、ずれ（誤差）を整数でためていく。マス目の上にその値を数字で出して、ためて戻す様子を見る
+// 番外編「ブレゼンハム：整数だけで線を引く」の実験用プログラム / Experiment program for the extra episode "Bresenham: Drawing Lines with Integers Only".
+// ラスタライザー編 #02 の線の引き方（DDA）と、小数を使わずに整数だけで引くブレゼンハムを並べて、違うピクセルを赤く光らせる / Compare DDA from #02 with integer-only Bresenham. Differing pixels light up in red.
+// ブレゼンハムは、ずれ（誤差）を整数でためていく。マス目の上にその値を数字で出して、ためて戻す様子を見る / Bresenham accumulates the error as integers. We show the values on the squares.
 //
-// 操作
-//   1    … #02 の花火（画面の真ん中から、ふちへ 20 ピクセルおきに線を引く）を、左に DDA、右にブレゼンハムで並べる
-//          画面の幅の半分に入るのは、花火の真ん中の部分（左右 79 ピクセルずつ）。Z, X と矢印で、2枚いっしょに拡大や移動ができる
-//   2    … 同じ花火を、#02 と同じ大きさで1枚出して、DDA とブレゼンハムで違うピクセルを赤で表示する
-//   3    … 線を1本だけ拡大して、誤差の数字を出す。始点から右へ 10、上へ 4 の線
-//   4    … 3 と同じで、始点から右へ 10、上へ 5 の線（傾きがちょうど 1/2）。もう一度押すと、最初の線に戻る
-//   V    … 表示の切り替え（1: そのまま → 相手にないピクセルを赤で光らせる。2, 3, 4: DDA → ブレゼンハム → 違いを赤で表示）
-//   Z, X … 拡大、縮小
-//   矢印 … 表示する場所を動かす
-//   C    … ピクセルの境目の線を出す（拡大が 8 倍以上のとき）
-//   0    … 表示の位置と拡大を、最初に戻す
-//   F    … 始点を (0, 0) に置き、終点を ±60 の中の全部の位置にして、DDA とブレゼンハムが違う線を数える
-//   M    … 速さを測る（DDA とブレゼンハムで、同じ線を大量に引く）
-//   Esc  … 終わる
-// 場面 1, 2
-//   L    … 線の本数を変える（20 ピクセルおき → 10 → 5）
-// 場面 3, 4
-//   W, A, S, D … 終点を1マス動かす（Shift を押しながらだと始点）
-//   Q    … 始点と終点を入れ替える（同じ線を、反対の端から引く）
-//   R    … 終点を、始点のまわりでゆっくり回す（もう一度押すと止まる）
-//   E    … 誤差の数字を出す（拡大が 16 倍以上のとき。ブレゼンハムと、違いの表示で出る）
-//   T    … 本当の線（始点のピクセルの中心から、終点のピクセルの中心まで）を重ねる
-//   P    … 今の線の誤差の表を、コンソールに出す
-// 場面を切り替えたり、線が変わったりしたときは、違うピクセルの数をコンソールに出す
-// 画面の左下の小さな四角の印は、今の表示（明るいのが選ばれている）。左から順に、DDA、ブレゼンハム、違い
-// 違いの表示では、DDA だけが打ったピクセルは赤いベタ塗り、ブレゼンハムだけが打ったピクセルは赤い枠で表す
-// 誤差の数字は、マスの中に出す。マスごとに、誤差に足したあと、超えたかを調べる前の値を出す
-//   緑のマス … 超えた。次のマスは1段進む。下の黄色い数字は、1段分を引いたあとの誤差
-//   紫のマス … 超えていないが、基準とちょうど同じ値（本当の線が、次のマスの2つのピクセルのちょうど真ん中を通る）
-// 画面の y は下向きなので、右上がりの線は、終点の y が始点より小さい
+// 操作 / Controls.
+//   1    … #02 の花火（画面の真ん中から、ふちへ 20 ピクセルおきに線を引く）を、左に DDA、右にブレゼンハムで並べる / The #02 fireworks (20-pixel spacing), DDA on the left, Bresenham on the right.
+//          画面の幅の半分に入るのは、花火の真ん中の部分（左右 79 ピクセルずつ）。Z, X と矢印で、2枚いっしょに拡大や移動ができる / Half the width shows the middle of the fireworks (79 pixels each side). Zoom and move both together.
+//   2    … 同じ花火を、#02 と同じ大きさで1枚出して、DDA とブレゼンハムで違うピクセルを赤で表示する / The same fireworks at #02's size, one picture, differing pixels in red.
+//   3    … 線を1本だけ拡大して、誤差の数字を出す。始点から右へ 10、上へ 4 の線 / Zoom on one line, show error numbers: 10 right, 4 up from start.
+//   4    … 3 と同じで、始点から右へ 10、上へ 5 の線（傾きがちょうど 1/2）。もう一度押すと、最初の線に戻る / Same as 3 but 10 right, 5 up (slope exactly 1/2). Press again to go back.
+//   V    … 表示の切り替え（1: そのまま → 相手にないピクセルを赤で光らせる。2, 3, 4: DDA → ブレゼンハム → 違いを赤で表示） / Switch display (1: plain, then mismatches in red. 2-4: DDA, Bresenham, difference).
+//   Z, X … 拡大、縮小 / Zoom in, zoom out.
+//   矢印 … 表示する場所を動かす / Move the displayed area with the arrow keys.
+//   C    … ピクセルの境目の線を出す（拡大が 8 倍以上のとき） / Show pixel border lines (when zoom is 8x or more).
+//   0    … 表示の位置と拡大を、最初に戻す / Reset the view position and zoom.
+//   F    … 始点を (0, 0) に置き、終点を ±60 の中の全部の位置にして、DDA とブレゼンハムが違う線を数える / Start at (0, 0), try every end within +/-60, count lines where DDA and Bresenham differ.
+//   M    … 速さを測る（DDA とブレゼンハムで、同じ線を大量に引く） / Measure speed (draw the same lines many times with DDA and Bresenham).
+//   Esc  … 終わる / Quit.
+// 場面 1, 2 / Scenes 1 and 2.
+//   L    … 線の本数を変える（20 ピクセルおき → 10 → 5） / Change the number of lines (every 20 pixels, then 10, then 5).
+// 場面 3, 4 / Scenes 3 and 4.
+//   W, A, S, D … 終点を1マス動かす（Shift を押しながらだと始点） / Move the end point by one square (the start point while holding Shift).
+//   Q    … 始点と終点を入れ替える（同じ線を、反対の端から引く） / Swap the start and end (draw the same line from the other end).
+//   R    … 終点を、始点のまわりでゆっくり回す（もう一度押すと止まる） / Slowly rotate the end point around the start (press again to stop).
+//   E    … 誤差の数字を出す（拡大が 16 倍以上のとき。ブレゼンハムと、違いの表示で出る） / Show error numbers (zoom 16x or more; in the Bresenham and difference displays).
+//   T    … 本当の線（始点のピクセルの中心から、終点のピクセルの中心まで）を重ねる / Overlay the true line (start pixel center to end pixel center).
+//   P    … 今の線の誤差の表を、コンソールに出す / Print the error table of the current line to the console.
+// 場面を切り替えたり、線が変わったりしたときは、違うピクセルの数をコンソールに出す / When the scene or line changes, print the number of differing pixels.
+// 画面の左下の小さな四角の印は、今の表示（明るいのが選ばれている）。左から順に、DDA、ブレゼンハム、違い / Bottom-left markers show the display (bright = chosen): DDA, Bresenham, difference.
+// 違いの表示では、DDA だけが打ったピクセルは赤いベタ塗り、ブレゼンハムだけが打ったピクセルは赤い枠で表す / Difference display: DDA-only pixels are solid red, Bresenham-only get a red frame.
+// 誤差の数字は、マスの中に出す。マスごとに、誤差に足したあと、超えたかを調べる前の値を出す / Square numbers: error after adding, before the threshold check.
+//   緑のマス … 超えた。次のマスは1段進む。下の黄色い数字は、1段分を引いたあとの誤差 / Green: exceeded, next moves a row. Yellow: error after subtracting a row.
+//   紫のマス … 超えていないが、基準とちょうど同じ値（本当の線が、次のマスの2つのピクセルのちょうど真ん中を通る） / Purple: not exceeded, but equal to the threshold (true line exactly between 2 pixels).
+// 画面の y は下向きなので、右上がりの線は、終点の y が始点より小さい / Screen y points down, so a line rising to the right has end y < start y.
 
 #include <algorithm>
 #include <chrono>
@@ -45,44 +45,44 @@
 
 #include "framework/canvas.h"
 
-// 画面上の位置（ピクセル）
+// 画面上の位置（ピクセル） / Position on the screen, in pixels.
 struct Point {
     int x;
     int y;
 };
 
-// 画面の上の位置。ピクセルの間の位置も表せるように、小数で持つ
+// 画面の上の位置。ピクセルの間の位置も表せるように、小数で持つ / Position on the screen. Stored as floats so it can also be between pixels.
 struct Vec2 {
     float x;
     float y;
 };
 
-// 絵を描く先。Canvas と同じ並びのピクセルに加えて、各ピクセルに線が通ったかを覚える
-// 線が通ったかは、DDA とブレゼンハムの違いを調べるために使う
+// 絵を描く先。Canvas と同じ並びのピクセルに加えて、各ピクセルに線が通ったかを覚える / Target picture: Canvas-like pixels plus a line-passed flag per pixel.
+// 線が通ったかは、DDA とブレゼンハムの違いを調べるために使う / Whether a line passed is used to find the differences between DDA and Bresenham.
 struct Image {
     int width;
     int height;
     std::vector<Color> pixels;
-    std::vector<uint8_t> lit;  // 1: 線が通った
+    std::vector<uint8_t> lit;  // 1: 線が通った / 1 means a line passed through.
 };
 
-// 線を引くときの、1マスごとの記録。デバッグ表示と、違いを数えるために使う
+// 線を引くときの、1マスごとの記録。デバッグ表示と、違いを数えるために使う / Per-square record of a line, for the debug view and counting differences.
 struct LineStep {
-    int x;          // 打ったピクセル
+    int x;          // 打ったピクセル / The plotted pixel.
     int y;
-    int checked;    // ブレゼンハムの誤差に足したあと、超えたかを調べる前の値（DDA では使わない）
-    bool stepped;   // 超えて、次のマスを1段進めたか（DDA では使わない）
-    int error;      // 1段分を引いたあとの誤差。超えなかったときは checked と同じ（DDA では使わない）
+    int checked;    // ブレゼンハムの誤差に足したあと、超えたかを調べる前の値（DDA では使わない） / Value after adding to the error, before the threshold check (not used by DDA).
+    bool stepped;   // 超えて、次のマスを1段進めたか（DDA では使わない） / Whether it exceeded the threshold and moved the next square one row (not used by DDA).
+    int error;      // 1段分を引いたあとの誤差。超えなかったときは checked と同じ（DDA では使わない） / Error after subtracting one row; same as checked if not exceeded (not used by DDA).
 };
 
-// 表示するもの
+// 表示するもの / What to display.
 enum class Display {
     dda,
     bresenham,
-    difference,  // 違うピクセルを赤で出す
+    difference,  // 違うピクセルを赤で出す / Show differing pixels in red.
 };
 
-// canvas の中の dest の四角形に、絵の left, top から始まる範囲を、zoom 倍にして出す
+// canvas の中の dest の四角形に、絵の left, top から始まる範囲を、zoom 倍にして出す / Draw the picture from left, top, magnified zoom times, into dest on canvas.
 struct View {
     int dest_x;
     int dest_y;
@@ -93,27 +93,27 @@ struct View {
     int zoom;
 };
 
-// 場面の番号（キーの 1〜4 に対応する）
+// 場面の番号（キーの 1〜4 に対応する） / The scene number (matches keys 1 to 4).
 const int scene_side_by_side = 0;
 const int scene_fan = 1;
 const int scene_line_4 = 2;
 const int scene_line_5 = 3;
 const int scene_count = 4;
 
-// 絵の大きさ。canvas と同じにして、花火を #02 と同じ大きさで引く
+// 絵の大きさ。canvas と同じにして、花火を #02 と同じ大きさで引く / Picture size. Same as canvas, so the fireworks match #02's size.
 const int scene_width = 320;
 const int scene_height = 180;
 
 const int zoom_levels[7] = {1, 2, 4, 8, 16, 24, 32};
 const int zoom_level_count = 7;
 
-// 場面 3, 4 の線の始点。画面の真ん中あたりに置く
+// 場面 3, 4 の線の始点。画面の真ん中あたりに置く / The start point of the lines in scenes 3 and 4. Placed near the screen center.
 const Point line_origin = {155, 92};
 
 const Color background = {16, 16, 48};
 const Color line_color = {176, 104, 32};
 
-// 0xRRGGBB の形の数を Color にする
+// 0xRRGGBB の形の数を Color にする / Turn a 0xRRGGBB number into a Color.
 Color from_hex(uint32_t hex) {
     const uint8_t r = static_cast<uint8_t>((hex >> 16) & 0xFF);
     const uint8_t g = static_cast<uint8_t>((hex >> 8) & 0xFF);
@@ -121,7 +121,7 @@ Color from_hex(uint32_t hex) {
     return Color{r, g, b};
 }
 
-// 色を暗くする。1 で変わらず、0 で黒
+// 色を暗くする。1 で変わらず、0 で黒 / Darken a color. 1 leaves it unchanged, 0 is black.
 Color darken(Color color, float amount) {
     return Color{
         static_cast<uint8_t>(static_cast<float>(color.r) * amount),
@@ -140,9 +140,9 @@ void clear_image(Image& image) {
     std::fill(image.lit.begin(), image.lit.end(), static_cast<uint8_t>(0));
 }
 
-// (x, y) のピクセルを color にする。線が通ったことも覚える
+// (x, y) のピクセルを color にする。線が通ったことも覚える / Set the pixel at (x, y) to color. Also remember that a line passed through.
 void set_pixel(Image& image, int x, int y, Color color) {
-    // 画面の外は何もしない。はみ出して pixels の外を書くと、プログラムが壊れるため
+    // 画面の外は何もしない。はみ出して pixels の外を書くと、プログラムが壊れるため / Skip off-screen points. Writing outside pixels breaks the program.
     if (x < 0 || x >= image.width || y < 0 || y >= image.height) {
         return;
     }
@@ -150,16 +150,16 @@ void set_pixel(Image& image, int x, int y, Color color) {
     image.lit[y * image.width + x] = 1;
 }
 
-// (x0, y0) から (x1, y1) まで、1ピクセルずつ進みながら線を引く。#02 の draw_line と同じ中身
-// trace が nullptr でなければ、打ったピクセルを順に記録する
+// (x0, y0) から (x1, y1) まで、1ピクセルずつ進みながら線を引く。#02 の draw_line と同じ中身 / Line from (x0, y0) to (x1, y1), one pixel at a time. Same as draw_line in #02.
+// trace が nullptr でなければ、打ったピクセルを順に記録する / If trace is not nullptr, record the plotted pixels in order.
 void draw_line_dda(Image& image, int x0, int y0, int x1, int y1, Color color, std::vector<LineStep>* trace = nullptr) {
     const int dx = x1 - x0;
     const int dy = y1 - y0;
 
-    // x と y のうち長いほうの軸で数える。短いほうは1歩で1マス以下しか動かないので、間が空かない
+    // x と y のうち長いほうの軸で数える。短いほうは1歩で1マス以下しか動かないので、間が空かない / Count along the longer axis. The shorter one moves at most 1 pixel per step: no gaps.
     const int steps = std::max(std::abs(dx), std::abs(dy));
 
-    // 始点と終点が同じ場所だと steps が 0 になり、下の割り算ができない。点を1つ打って終わる
+    // 始点と終点が同じ場所だと steps が 0 になり、下の割り算ができない。点を1つ打って終わる / If start equals end, steps is 0 and division fails. Plot one pixel and stop.
     if (steps == 0) {
         set_pixel(image, x0, y0, color);
         if (trace != nullptr) {
@@ -169,10 +169,10 @@ void draw_line_dda(Image& image, int x0, int y0, int x1, int y1, Color color, st
     }
 
     for (int i = 0; i <= steps; i++) {
-        // t は 0（始点）から 1（終点）まで進む割合
+        // t は 0（始点）から 1（終点）まで進む割合 / t is the ratio that goes from 0 (start) to 1 (end).
         const float t = static_cast<float>(i) / static_cast<float>(steps);
 
-        // 最も近いピクセルに丸める。ちょうど半分のときは、0 から遠いほう（始点から遠いほう）に丸まる
+        // 最も近いピクセルに丸める。ちょうど半分のときは、0 から遠いほう（始点から遠いほう）に丸まる / Round to nearest. Exactly half rounds away from the start.
         const int x = x0 + static_cast<int>(std::round(static_cast<float>(dx) * t));
         const int y = y0 + static_cast<int>(std::round(static_cast<float>(dy) * t));
         set_pixel(image, x, y, color);
@@ -182,17 +182,17 @@ void draw_line_dda(Image& image, int x0, int y0, int x1, int y1, Color color, st
     }
 }
 
-// (x0, y0) から (x1, y1) まで、整数だけで線を引く（ブレゼンハム）
-// trace が nullptr でなければ、打ったピクセルと、そのときの誤差を順に記録する
+// (x0, y0) から (x1, y1) まで、整数だけで線を引く（ブレゼンハム） / Line from (x0, y0) to (x1, y1) using only integers (Bresenham).
+// trace が nullptr でなければ、打ったピクセルと、そのときの誤差を順に記録する / If trace is not nullptr, record each plotted pixel and its error.
 void draw_line_bresenham(Image& image, int x0, int y0, int x1, int y1, Color color, std::vector<LineStep>* trace = nullptr) {
-    // 8つの向きを、1つの書き方にまとめる
-    // 縦のほうが長い線は、x と y を入れ替えて、ゆるやかな線として扱う（打つときに元へ戻す）
+    // 8つの向きを、1つの書き方にまとめる / Combine all 8 directions into one way of writing it.
+    // 縦のほうが長い線は、x と y を入れ替えて、ゆるやかな線として扱う（打つときに元へ戻す） / Mostly vertical line: swap x and y to make it gentle (swap back when plotting).
     const bool steep = std::abs(y1 - y0) > std::abs(x1 - x0);
     if (steep) {
         std::swap(x0, y0);
         std::swap(x1, y1);
     }
-    // 右から左へ進む線は、始点と終点を入れ替える。いつも左から右へ進めば、向きの場合分けが減る
+    // 右から左へ進む線は、始点と終点を入れ替える。いつも左から右へ進めば、向きの場合分けが減る / Right-to-left lines: swap start and end; we only go left to right.
     if (x0 > x1) {
         std::swap(x0, x1);
         std::swap(y0, y1);
@@ -200,13 +200,13 @@ void draw_line_bresenham(Image& image, int x0, int y0, int x1, int y1, Color col
 
     const int dx = x1 - x0;
     const int dy = std::abs(y1 - y0);
-    // 下がる線（y が減る線）は、縦に進む向きをマイナスにするだけ
+    // 下がる線（y が減る線）は、縦に進む向きをマイナスにするだけ / For a falling line (y decreases), just make the vertical step negative.
     const int y_step = (y0 < y1) ? 1 : -1;
 
-    // 誤差は、本当の線と今の高さのずれ。小数をなくすために、全部を 2 * dx 倍して整数にしてある
-    //   1 マス分のずれ = 2 * dx
-    //   半マス分のずれ = dx（超えたかどうかの基準）
-    //   横に1マス進んだときの、本当の線の上がり = dy / dx マス = 2 * dy
+    // 誤差は、本当の線と今の高さのずれ。小数をなくすために、全部を 2 * dx 倍して整数にしてある / Error: true line vs. current y, times 2 * dx (integers only).
+    //   1 マス分のずれ = 2 * dx / Offset of one square = 2 * dx.
+    //   半マス分のずれ = dx（超えたかどうかの基準） / Offset of half a square = dx (the threshold for passing).
+    //   横に1マス進んだときの、本当の線の上がり = dy / dx マス = 2 * dy / True line rise per square to the right = dy / dx = 2 * dy.
     int error = 0;
     int y = y0;
     for (int x = x0; x <= x1; x++) {
@@ -226,14 +226,14 @@ void draw_line_bresenham(Image& image, int x0, int y0, int x1, int y1, Color col
         }
 
         if (trace != nullptr) {
-            // 表示のための記録。線の引き方には関係しない。入れ替えて計算していたときは、元の x と y に戻して記録する
+            // 表示のための記録。線の引き方には関係しない。入れ替えて計算していたときは、元の x と y に戻して記録する / Record for display only. If x and y were swapped, swap them back before recording.
             trace->push_back(LineStep{steep ? plotted_y : x, steep ? x : plotted_y, checked, checked > dx, error});
         }
     }
 }
 
-// 誤差が基準とちょうど同じ値になったマスの数。本当の線が、次のマスの2つのピクセルのちょうど真ん中を通る場所
-// 最後のマスの次はないので、数えない
+// 誤差が基準とちょうど同じ値になったマスの数。本当の線が、次のマスの2つのピクセルのちょうど真ん中を通る場所 / Squares where the error equals the threshold (true line exactly between 2 pixels).
+// 最後のマスの次はないので、数えない / There is no square after the last one, so it is not counted.
 int count_half_points(const std::vector<LineStep>& trace, int threshold) {
     int count = 0;
     for (size_t i = 0; i + 1 < trace.size(); i++) {
@@ -244,19 +244,19 @@ int count_half_points(const std::vector<LineStep>& trace, int threshold) {
     return count;
 }
 
-// 線の長いほうの軸の長さ（歩数）。ブレゼンハムの dx と同じ値
+// 線の長いほうの軸の長さ（歩数）。ブレゼンハムの dx と同じ値 / Length of the longer axis of the line (steps). Same as dx in Bresenham.
 int long_length(Point start, Point end) {
     return std::max(std::abs(end.x - start.x), std::abs(end.y - start.y));
 }
 
-// 花火の1回分の記録
+// 花火の1回分の記録 / A record for one fireworks run.
 struct FanStats {
     int lines;
-    int half_lines;   // ちょうど半分を通る線の数
-    int half_points;  // ちょうど半分のマスの数
+    int half_lines;   // ちょうど半分を通る線の数 / The number of lines that pass exactly through the half point.
+    int half_points;  // ちょうど半分のマスの数 / The number of exactly-half squares.
 };
 
-// 同じ線を、DDA とブレゼンハムで別々の絵に引く
+// 同じ線を、DDA とブレゼンハムで別々の絵に引く / Draw the same line into separate pictures with DDA and Bresenham.
 void draw_both(Image& dda_image, Image& bres_image, int x0, int y0, int x1, int y1, FanStats& stats) {
     std::vector<LineStep> trace;
     draw_line_dda(dda_image, x0, y0, x1, y1, line_color);
@@ -270,7 +270,7 @@ void draw_both(Image& dda_image, Image& bres_image, int x0, int y0, int x1, int 
     }
 }
 
-// 場面 1, 2：#02 の花火。絵の真ん中から、絵のふちの点へ、spacing ピクセルおきに線を引く
+// 場面 1, 2：#02 の花火。絵の真ん中から、絵のふちの点へ、spacing ピクセルおきに線を引く / Scenes 1-2: #02 fireworks, center to edge every spacing pixels.
 FanStats render_fan(Image& dda_image, Image& bres_image, int spacing) {
     clear_image(dda_image);
     clear_image(bres_image);
@@ -281,17 +281,17 @@ FanStats render_fan(Image& dda_image, Image& bres_image, int spacing) {
     const int last_x = dda_image.width - 1;
     const int last_y = dda_image.height - 1;
     for (int x = 0; x <= last_x; x += spacing) {
-        draw_both(dda_image, bres_image, center_x, center_y, x, 0, stats);        // 上のふち
-        draw_both(dda_image, bres_image, center_x, center_y, x, last_y, stats);   // 下のふち
+        draw_both(dda_image, bres_image, center_x, center_y, x, 0, stats);        // 上のふち / Top edge.
+        draw_both(dda_image, bres_image, center_x, center_y, x, last_y, stats);   // 下のふち / Bottom edge.
     }
     for (int y = 0; y <= last_y; y += spacing) {
-        draw_both(dda_image, bres_image, center_x, center_y, 0, y, stats);        // 左のふち
-        draw_both(dda_image, bres_image, center_x, center_y, last_x, y, stats);   // 右のふち
+        draw_both(dda_image, bres_image, center_x, center_y, 0, y, stats);        // 左のふち / Left edge.
+        draw_both(dda_image, bres_image, center_x, center_y, last_x, y, stats);   // 右のふち / Right edge.
     }
     return stats;
 }
 
-// 場面 3, 4：線を1本だけ引く。表示のために、1マスごとの記録も取る
+// 場面 3, 4：線を1本だけ引く。表示のために、1マスごとの記録も取る / Scenes 3-4: draw one line, plus a per-square record for display.
 void render_line(Image& dda_image, Image& bres_image, Point start, Point end, std::vector<LineStep>& dda_trace, std::vector<LineStep>& bres_trace) {
     clear_image(dda_image);
     clear_image(bres_image);
@@ -301,7 +301,7 @@ void render_line(Image& dda_image, Image& bres_image, Point start, Point end, st
     draw_line_bresenham(bres_image, start.x, start.y, end.x, end.y, line_color, &bres_trace);
 }
 
-// 2つの絵で、線が通ったかが違うピクセルの数と、線が通ったピクセルの数
+// 2つの絵で、線が通ったかが違うピクセルの数と、線が通ったピクセルの数 / Counts: pixels where the 2 pictures differ, and pixels a line passed.
 struct Difference {
     int only_dda;
     int only_bresenham;
@@ -326,7 +326,7 @@ Difference compare_images(const Image& dda_image, const Image& bres_image) {
     return difference;
 }
 
-// 記録のピクセルを、並べ替えて比べられる数にする。始点の向きが違う線どうしを比べるため、順番ではなく集まりで比べる
+// 記録のピクセルを、並べ替えて比べられる数にする。始点の向きが違う線どうしを比べるため、順番ではなく集まりで比べる / Turn recorded pixels into sortable numbers. Lines from opposite ends are compared as sets.
 std::vector<int> pixel_keys(const std::vector<LineStep>& trace) {
     std::vector<int> keys;
     for (const LineStep& step : trace) {
@@ -336,7 +336,7 @@ std::vector<int> pixel_keys(const std::vector<LineStep>& trace) {
     return keys;
 }
 
-// a にあって b にないピクセルの数
+// a にあって b にないピクセルの数 / The number of pixels in a but not in b.
 int count_only_in_first(const std::vector<LineStep>& a, const std::vector<LineStep>& b) {
     const std::vector<int> keys_a = pixel_keys(a);
     const std::vector<int> keys_b = pixel_keys(b);
@@ -345,7 +345,7 @@ int count_only_in_first(const std::vector<LineStep>& a, const std::vector<LineSt
     return static_cast<int>(only_a.size());
 }
 
-// 違う線の数と、違うピクセルの数（片方にだけあるピクセルの数）の集計
+// 違う線の数と、違うピクセルの数（片方にだけあるピクセルの数）の集計 / Tally of differing lines and differing pixels (pixels only one side has).
 struct Tally {
     int lines;
     int different_lines;
@@ -366,14 +366,14 @@ void print_tally(const char* name, const Tally& tally, int total_pixels) {
     std::printf("  %-52s lines %5d of %5d (%5.2f%%)   pixels %6d (%5.2f%%)\n", name, tally.different_lines, tally.lines, line_percent, tally.different_pixels, pixel_percent);
 }
 
-// 始点を (0, 0) に置き、終点を ±max_length の中の全部の位置にして、線を引き比べる
+// 始点を (0, 0) に置き、終点を ±max_length の中の全部の位置にして、線を引き比べる / Start at (0, 0), try every end within +/-max_length, and compare the lines.
 void count_all_lines(int max_length) {
-    // 絵には描かない。1x1 の絵を渡すと、画面の外として全部捨てられて、記録だけが残る
+    // 絵には描かない。1x1 の絵を渡すと、画面の外として全部捨てられて、記録だけが残る / Not drawn: a 1x1 picture drops all pixels; only the record stays.
     Image nowhere = make_image(1, 1);
 
     Tally dda_vs_bresenham = {};
-    Tally dda_vs_bresenham_forward = {};    // 長いほうの軸が増える向きに引く線
-    Tally dda_vs_bresenham_backward = {};   // 長いほうの軸が減る向きに引く線
+    Tally dda_vs_bresenham_forward = {};    // 長いほうの軸が増える向きに引く線 / Lines drawn where the longer axis increases.
+    Tally dda_vs_bresenham_backward = {};   // 長いほうの軸が減る向きに引く線 / Lines drawn where the longer axis decreases.
     Tally swap_dda = {};
     Tally swap_bresenham = {};
     int half_lines = 0;
@@ -398,7 +398,7 @@ void count_all_lines(int max_length) {
             bresenham.clear();
             bresenham_back.clear();
 
-            // 始点 → 終点 と、終点 → 始点 の2通りで引く
+            // 始点 → 終点 と、終点 → 始点 の2通りで引く / Draw both ways: start to end, and end to start.
             draw_line_dda(nowhere, 0, 0, dx, dy, line_color, &dda);
             draw_line_dda(nowhere, dx, dy, 0, 0, line_color, &dda_back);
             draw_line_bresenham(nowhere, 0, 0, dx, dy, line_color, &bresenham);
@@ -411,7 +411,7 @@ void count_all_lines(int max_length) {
                 half_points += points;
             }
 
-            // 長いほうの軸が増える向き（右へ、または下へ）か
+            // 長いほうの軸が増える向き（右へ、または下へ）か / Whether the longer axis increases (going right or down).
             const bool forward = (std::abs(dy) > std::abs(dx)) ? (dy > 0) : (dx > 0);
             const int different = count_only_in_first(dda, bresenham);
             add_to_tally(dda_vs_bresenham, different);
@@ -435,18 +435,18 @@ void count_all_lines(int max_length) {
     print_tally("Bresenham", swap_bresenham, total_pixels);
 }
 
-// 次の乱数を返す。同じ数列を2つの方法に使うための、簡単な計算
+// 次の乱数を返す。同じ数列を2つの方法に使うための、簡単な計算 / Return the next random number. A simple way to give both methods the same sequence.
 uint32_t next_random(uint32_t& state) {
     state = state * 1664525u + 1013904223u;
     return state >> 8;
 }
 
-// DDA とブレゼンハムで、同じ線を大量に引いて、かかった時間を測る
+// DDA とブレゼンハムで、同じ線を大量に引いて、かかった時間を測る / Draw the same lines many times with DDA and Bresenham and time them.
 void measure_speed() {
     const int line_count = 100000;
     const int rounds = 3;
 
-    // 画面の中の、でたらめな2点を結ぶ線。どちらの方法にも同じ線を使う
+    // 画面の中の、でたらめな2点を結ぶ線。どちらの方法にも同じ線を使う / Lines between 2 random points on the screen. Both methods use the same lines.
     std::vector<Point> starts;
     std::vector<Point> ends;
     uint32_t state = 12345u;
@@ -487,8 +487,8 @@ void measure_speed() {
     std::printf("  Bresenham / DDA = %.2f\n", best_bresenham / best_dda);
 }
 
-// 3×5 ピクセルの数字。# のところが点く。0〜9 と、10 番がマイナス
-// 外のフォントや Windows の文字の描き方は使わず、ここに持っておく
+// 3×5 ピクセルの数字。# のところが点く。0〜9 と、10 番がマイナス / 3x5-pixel digits; # is lit. 0 to 9, and number 10 is the minus sign.
+// 外のフォントや Windows の文字の描き方は使わず、ここに持っておく / We do not use external fonts or Windows text drawing. We keep the digits here.
 const char* const glyphs[11][5] = {
     {"###", "# #", "# #", "# #", "###"},  // 0
     {" # ", "## ", " # ", " # ", "###"},  // 1
@@ -507,7 +507,7 @@ const int glyph_width = 3;
 const int glyph_height = 5;
 const int minus_glyph = 10;
 
-// canvas の (x, y) を color にする。範囲の外は何もしない
+// canvas の (x, y) を color にする。範囲の外は何もしない / Set (x, y) on canvas to color. Do nothing outside the range.
 void put_pixel(Canvas& canvas, int x, int y, Color color) {
     if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
         return;
@@ -515,7 +515,7 @@ void put_pixel(Canvas& canvas, int x, int y, Color color) {
     canvas.pixels[y * canvas.width + x] = color;
 }
 
-// canvas の四角形を color で塗る。範囲の外は何もしない
+// canvas の四角形を color で塗る。範囲の外は何もしない / Fill a rectangle on canvas with color. Do nothing outside the range.
 void fill_rect(Canvas& canvas, int left, int top, int width, int height, Color color) {
     for (int y = top; y < top + height; y++) {
         for (int x = left; x < left + width; x++) {
@@ -524,9 +524,9 @@ void fill_rect(Canvas& canvas, int left, int top, int width, int height, Color c
     }
 }
 
-// value を、中心が (center_x, center_y) になるように、数字で書く。scale は1ドットを何ピクセルにするか
+// value を、中心が (center_x, center_y) になるように、数字で書く。scale は1ドットを何ピクセルにするか / Write value as digits centered at (center_x, center_y). scale = pixels per dot.
 void draw_number(Canvas& canvas, int value, int center_x, int center_y, int scale, Color color) {
-    // 書く文字を、左から順に並べる。マイナス、そのあとに上の桁から
+    // 書く文字を、左から順に並べる。マイナス、そのあとに上の桁から / Line up characters from the left: the minus sign, then digits from the top.
     int ids[12];
     int count = 0;
     if (value < 0) {
@@ -546,7 +546,7 @@ void draw_number(Canvas& canvas, int value, int center_x, int center_y, int scal
         count++;
     }
 
-    // 文字と文字のあいだは 1 ドット空ける
+    // 文字と文字のあいだは 1 ドット空ける / Leave 1 dot between characters.
     const int total_width = (count * glyph_width + (count - 1)) * scale;
     const int left = center_x - total_width / 2;
     const int top = center_y - glyph_height * scale / 2;
@@ -562,12 +562,12 @@ void draw_number(Canvas& canvas, int value, int center_x, int center_y, int scal
     }
 }
 
-// 誤差の数字の1ドットを、何ピクセルにするか。マスに、数字を2段に重ねても収まる大きさにする
+// 誤差の数字の1ドットを、何ピクセルにするか。マスに、数字を2段に重ねても収まる大きさにする / Pixels per dot of the error numbers. Small enough for 2 stacked rows in a square.
 int digit_scale(int zoom) {
     return std::max(1, (zoom - 2) / (2 * glyph_height + 1));
 }
 
-// 違いの表示で、ブレゼンハムだけが打ったピクセルを囲む赤い枠の太さ。数字を出す大きさのときは、数字が枠にかからないように細くする
+// 違いの表示で、ブレゼンハムだけが打ったピクセルを囲む赤い枠の太さ。数字を出す大きさのときは、数字が枠にかからないように細くする / Thickness of the red frame around Bresenham-only pixels. Thin when numbers show.
 int frame_width(int zoom) {
     if (zoom < 16) {
         return std::max(1, zoom / 5);
@@ -575,10 +575,10 @@ int frame_width(int zoom) {
     return std::clamp((zoom - (2 * glyph_height + 1) * digit_scale(zoom)) / 2, 1, zoom / 5);
 }
 
-// 絵を、view で決めたとおり canvas に拡大して出す
-// mark が true のときは、もう片方の絵にはない（線が通っていない）ピクセルを、赤で光らせる
+// 絵を、view で決めたとおり canvas に拡大して出す / Show the picture on canvas, zoomed as view says.
+// mark が true のときは、もう片方の絵にはない（線が通っていない）ピクセルを、赤で光らせる / If mark is true, light up in red pixels the other picture lacks.
 void draw_cells(Canvas& canvas, const Image& dda_image, const Image& bres_image, Display display, bool mark, const View& view, bool show_grid) {
-    // 拡大が小さいときは、ピクセルの境目の線が絵をつぶすので、出さない
+    // 拡大が小さいときは、ピクセルの境目の線が絵をつぶすので、出さない / At low zoom, hide pixel border lines because they would swallow the picture.
     const bool grid = show_grid && view.zoom >= 8;
     const Color grid_color = from_hex(0x505070);
     const Color red = from_hex(0xFF2020);
@@ -588,7 +588,7 @@ void draw_cells(Canvas& canvas, const Image& dda_image, const Image& bres_image,
 
     for (int v = 0; v < view.dest_h; v++) {
         for (int u = 0; u < view.dest_w; u++) {
-            // 絵のどのピクセルか。bx, by は、そのピクセルを拡大したマスの中の位置
+            // 絵のどのピクセルか。bx, by は、そのピクセルを拡大したマスの中の位置 / The picture pixel. bx, by: position inside its zoomed square.
             const int sx = view.left + u / view.zoom;
             const int sy = view.top + v / view.zoom;
             const int bx = u % view.zoom;
@@ -619,13 +619,13 @@ void draw_cells(Canvas& canvas, const Image& dda_image, const Image& bres_image,
                     }
                 } else {
                     if (lit_dda && lit_bres) {
-                        // どちらも打ったピクセルは、暗くして目立たなくする
+                        // どちらも打ったピクセルは、暗くして目立たなくする / Pixels both plotted are darkened so they do not stand out.
                         color = darken(line_color, 0.6f);
                     } else if (lit_dda) {
                         color = red;
                         is_red = true;
                     } else if (lit_bres) {
-                        // 拡大しているときは枠だけにして、DDA だけの印と見分ける。小さいときは赤いベタ塗り
+                        // 拡大しているときは枠だけにして、DDA だけの印と見分ける。小さいときは赤いベタ塗り / Zoomed: frame (vs DDA-only). Small: solid red.
                         const bool on_frame = bx < frame || bx >= view.zoom - frame || by < frame || by >= view.zoom - frame;
                         if (view.zoom < 8 || on_frame) {
                             color = red;
@@ -643,7 +643,7 @@ void draw_cells(Canvas& canvas, const Image& dda_image, const Image& bres_image,
     }
 }
 
-// 絵の上の位置 p が、canvas のどこに当たるか。ピクセルの中心（x + 0.5）は、拡大したマスの真ん中に来る
+// 絵の上の位置 p が、canvas のどこに当たるか。ピクセルの中心（x + 0.5）は、拡大したマスの真ん中に来る / Where picture position p lands on canvas. A pixel center (x + 0.5) is mid-square.
 Vec2 to_canvas(const View& view, Vec2 p) {
     return Vec2{
         static_cast<float>(view.dest_x) + (p.x - static_cast<float>(view.left)) * static_cast<float>(view.zoom),
@@ -651,7 +651,7 @@ Vec2 to_canvas(const View& view, Vec2 p) {
     };
 }
 
-// 本当の線を重ねて描く。始点のピクセルの中心から、終点のピクセルの中心まで
+// 本当の線を重ねて描く。始点のピクセルの中心から、終点のピクセルの中心まで / Overlay the true line, from the start pixel center to the end pixel center.
 void draw_true_line(Canvas& canvas, const View& view, Point start, Point end) {
     const Vec2 a = to_canvas(view, Vec2{static_cast<float>(start.x) + 0.5f, static_cast<float>(start.y) + 0.5f});
     const Vec2 b = to_canvas(view, Vec2{static_cast<float>(end.x) + 0.5f, static_cast<float>(end.y) + 0.5f});
@@ -669,8 +669,8 @@ void draw_true_line(Canvas& canvas, const View& view, Point start, Point end) {
     }
 }
 
-// ブレゼンハムの誤差を、マスの中に数字で書く。マスが全部見えているものだけ書く
-// 超えたマス（次を1段進めるマス）は緑にして、1段分を引いたあとの誤差を下に書く。基準とちょうど同じ値のマスは紫にする
+// ブレゼンハムの誤差を、マスの中に数字で書く。マスが全部見えているものだけ書く / Write the Bresenham error as numbers in the squares, only if fully visible.
+// 超えたマス（次を1段進めるマス）は緑にして、1段分を引いたあとの誤差を下に書く。基準とちょうど同じ値のマスは紫にする / Exceeded: green, new error below. At threshold: purple.
 void draw_errors(Canvas& canvas, const Image& dda_image, const std::vector<LineStep>& bres_trace, int threshold, Display display, const View& view, bool show_grid) {
     if (display == Display::dda || view.zoom < 16) {
         return;
@@ -690,7 +690,7 @@ void draw_errors(Canvas& canvas, const Image& dda_image, const std::vector<LineS
             continue;
         }
 
-        // 違いの表示で、ブレゼンハムだけが打ったマスは、赤い枠を残して中を塗る。ほかは、境目の線を残してマス全体を塗る
+        // 違いの表示で、ブレゼンハムだけが打ったマスは、赤い枠を残して中を塗る。ほかは、境目の線を残してマス全体を塗る / Bresenham-only squares: red frame stays. Others: border lines stay.
         const bool framed = (display == Display::difference) && dda_image.lit[step.y * dda_image.width + step.x] == 0;
         const int inset = framed ? frame : grid_inset;
         const int size = framed ? view.zoom - 2 * frame : view.zoom - grid_inset;
@@ -703,7 +703,7 @@ void draw_errors(Canvas& canvas, const Image& dda_image, const std::vector<LineS
         const int center_x = left + view.zoom / 2;
         const int center_y = top + view.zoom / 2;
         if (step.stepped) {
-            // 上に、足したあとの誤差。下に、1段分を引いたあとの誤差
+            // 上に、足したあとの誤差。下に、1段分を引いたあとの誤差 / On top, the error after adding. Below, the error after subtracting one row.
             const int offset = (glyph_height + 1) * scale / 2;
             draw_number(canvas, step.checked, center_x, center_y - offset, scale, white);
             draw_number(canvas, step.error, center_x, center_y + offset, scale, yellow);
@@ -713,7 +713,7 @@ void draw_errors(Canvas& canvas, const Image& dda_image, const std::vector<LineS
     }
 }
 
-// 表示の中心を決めると、view の左上に出す絵のピクセルが決まる。絵の外が見えないように、中心を内側に寄せる
+// 表示の中心を決めると、view の左上に出す絵のピクセルが決まる。絵の外が見えないように、中心を内側に寄せる / The view center sets the top-left picture pixel. Keep the center inside the picture.
 Vec2 clamp_center(Vec2 center, int zoom, int dest_w, int dest_h, const Image& image) {
     const float half_w = static_cast<float>(dest_w) / (2.0f * static_cast<float>(zoom));
     const float half_h = static_cast<float>(dest_h) / (2.0f * static_cast<float>(zoom));
@@ -723,7 +723,7 @@ Vec2 clamp_center(Vec2 center, int zoom, int dest_w, int dest_h, const Image& im
     };
 }
 
-// dest の真ん中に center が来るように、view の left, top を決める
+// dest の真ん中に center が来るように、view の left, top を決める / Choose left, top of view so that center is at the middle of dest.
 View make_view(int dest_x, int dest_y, int dest_w, int dest_h, Vec2 center, int zoom) {
     const float half_w = static_cast<float>(dest_w) / (2.0f * static_cast<float>(zoom));
     const float half_h = static_cast<float>(dest_h) / (2.0f * static_cast<float>(zoom));
@@ -738,7 +738,7 @@ View make_view(int dest_x, int dest_y, int dest_w, int dest_h, Vec2 center, int 
     };
 }
 
-// 画面の左下に、今の表示を色で示す。選ばれているものだけ明るい
+// 画面の左下に、今の表示を色で示す。選ばれているものだけ明るい / Show the current display by color at the bottom left. Only the chosen one is bright.
 void draw_indicators(Canvas& canvas, Display display) {
     const Color colors[3] = {from_hex(0xFFA030), from_hex(0x40D0FF), from_hex(0xFF3030)};
     const Display displays[3] = {Display::dda, Display::bresenham, Display::difference};
@@ -759,7 +759,7 @@ const char* display_name(Display display) {
     }
 }
 
-// キーが押された瞬間だけ true を返す。押しっぱなしでは1回しか反応しない
+// キーが押された瞬間だけ true を返す。押しっぱなしでは1回しか反応しない / Return true only on the frame the key is pressed. Holding it reacts once.
 bool key_pressed(Canvas& canvas, int key, bool was_down[]) {
     const bool is_down = canvas.is_key_down(key);
     const bool pressed = is_down && !was_down[key];
@@ -767,23 +767,23 @@ bool key_pressed(Canvas& canvas, int key, bool was_down[]) {
     return pressed;
 }
 
-// 点を絵の中に収める
+// 点を絵の中に収める / Clamp the point to the picture.
 Point clamp_point(Point p) {
     return Point{std::clamp(p.x, 0, scene_width - 1), std::clamp(p.y, 0, scene_height - 1)};
 }
 
-// 場面 3, 4 の最初の線。始点から右へ 10、上へ rise
+// 場面 3, 4 の最初の線。始点から右へ 10、上へ rise / The first line of scenes 3 and 4: 10 right and rise up from the start.
 void set_preset_line(int rise, Point& start, Point& end) {
     start = line_origin;
     end = Point{line_origin.x + 10, line_origin.y - rise};
 }
 
-// 線の真ん中のピクセルの中心
+// 線の真ん中のピクセルの中心 / The center of the middle pixel of the line.
 Vec2 line_center(Point start, Point end) {
     return Vec2{static_cast<float>(start.x + end.x) / 2.0f + 0.5f, static_cast<float>(start.y + end.y) / 2.0f + 0.5f};
 }
 
-// 今の線の誤差の表を、コンソールに出す。DDA が打ったピクセルも並べて、違うところに印を付ける
+// 今の線の誤差の表を、コンソールに出す。DDA が打ったピクセルも並べて、違うところに印を付ける / Print the error table next to DDA's pixels, marking differences.
 void print_trace(Point start, Point end, const std::vector<LineStep>& dda_trace, const std::vector<LineStep>& bres_trace) {
     const bool steep = std::abs(end.y - start.y) > std::abs(end.x - start.x);
     const int threshold = long_length(start, end);
@@ -795,7 +795,7 @@ void print_trace(Point start, Point end, const std::vector<LineStep>& dda_trace,
     for (size_t i = 0; i < bres_trace.size(); i++) {
         const LineStep& step = bres_trace[i];
 
-        // DDA の記録から、同じ位置（長いほうの軸の値が同じ）のピクセルを探す
+        // DDA の記録から、同じ位置（長いほうの軸の値が同じ）のピクセルを探す / Find the DDA pixel at the same position (same longer-axis value).
         char dda_text[24] = "-";
         bool different = false;
         for (const LineStep& dda : dda_trace) {
@@ -808,7 +808,7 @@ void print_trace(Point start, Point end, const std::vector<LineStep>& dda_trace,
         char bres_text[24];
         std::snprintf(bres_text, sizeof(bres_text), "(%d, %d)", step.x, step.y);
 
-        // 基準とちょうど同じ値のマスの次のマスで、DDA とブレゼンハムが分かれる
+        // 基準とちょうど同じ値のマスの次のマスで、DDA とブレゼンハムが分かれる / DDA and Bresenham split at the square after an exact-threshold square.
         const char* note = "";
         if (different) {
             note = "  <- different";
@@ -820,7 +820,7 @@ void print_trace(Point start, Point end, const std::vector<LineStep>& dda_trace,
 }
 
 int main() {
-    Canvas canvas(320, 180, 4);  // 320×180 の絵を、4倍に拡大して表示する
+    Canvas canvas(320, 180, 4);  // 320×180 の絵を、4倍に拡大して表示する / Draw at 320x180 and show it 4x larger.
 
     Image dda_image = make_image(scene_width, scene_height);
     Image bres_image = make_image(scene_width, scene_height);
@@ -828,28 +828,28 @@ int main() {
     std::vector<LineStep> bres_trace;
 
     int scene = scene_side_by_side;
-    // 場面ごとの表示。場面 1 は、DDA（そのまま）と difference（違いを赤で光らせる）の2つだけを切り替える
+    // 場面ごとの表示。場面 1 は、DDA（そのまま）と difference（違いを赤で光らせる）の2つだけを切り替える / Display per scene. Scene 1 only switches between DDA and difference.
     Display displays[scene_count] = {Display::dda, Display::difference, Display::bresenham, Display::bresenham};
     bool show_grid = true;
     bool show_errors = true;
     bool show_true_line = false;
 
-    // 場面 1, 2 の線の間隔
+    // 場面 1, 2 の線の間隔 / Line spacing in scenes 1 and 2.
     const int spacings[3] = {20, 10, 5};
     int spacing_index = 0;
 
-    // 場面 3, 4 の線
+    // 場面 3, 4 の線 / The line in scenes 3 and 4.
     Point start = {0, 0};
     Point end = {0, 0};
     set_preset_line(4, start, end);
 
-    // 終点を回すときの、始点からの距離と角度（ラジアン）
+    // 終点を回すときの、始点からの距離と角度（ラジアン） / The distance and angle (radians) from the start when rotating the end point.
     bool rotating = false;
     float rotate_radius = 0.0f;
     float rotate_angle = 0.0f;
     const float rotate_speed = 0.25f;
 
-    // 場面ごとの、拡大の段階と、表示の中心
+    // 場面ごとの、拡大の段階と、表示の中心 / The zoom level and view center for each scene.
     const int default_zoom_index[scene_count] = {0, 0, 5, 5};
     int zoom_index[scene_count] = {0, 0, 5, 5};
     Vec2 center[scene_count] = {
@@ -860,7 +860,7 @@ int main() {
     };
 
     bool was_down[256] = {};
-    bool dirty = true;  // 線を引き直して、違うピクセルの数をコンソールに出すか
+    bool dirty = true;  // 線を引き直して、違うピクセルの数をコンソールに出すか / Whether to redraw and print the number of differing pixels.
 
     std::printf("1: fans side by side  2: fan, differences in red  3: one line (10 right, 4 up)  4: one line (10 right, 5 up)\n");
     std::printf("V: display  Z/X: zoom  arrows: move view  C: grid  0: reset view  F: count all lines  M: measure speed  Esc: quit\n");
@@ -872,7 +872,7 @@ int main() {
             break;
         }
 
-        // 場面の切り替え。3 と 4 は、同じ場面でもう一度押すと最初の線に戻る
+        // 場面の切り替え。3 と 4 は、同じ場面でもう一度押すと最初の線に戻る / Switch scenes. For 3 and 4, pressing again returns to the first line.
         for (int k = 0; k < scene_count; k++) {
             if (!key_pressed(canvas, '1' + k, was_down)) {
                 continue;
@@ -932,7 +932,7 @@ int main() {
                 std::printf("lines: every %d pixels\n", spacings[spacing_index]);
             }
         } else {
-            // 始点と終点を1マスずつ動かす。Shift を押しているときは始点
+            // 始点と終点を1マスずつ動かす。Shift を押しているときは始点 / Move start and end one square at a time; with Shift, the start.
             Point& moved = canvas.is_key_down(key_shift) ? start : end;
             Point move = {0, 0};
             if (key_pressed(canvas, 'A', was_down)) {
@@ -963,7 +963,7 @@ int main() {
             if (key_pressed(canvas, 'R', was_down)) {
                 rotating = !rotating;
                 if (rotating) {
-                    // 今の向きから回し始める。見失わないよう、始点を表示の真ん中にする
+                    // 今の向きから回し始める。見失わないよう、始点を表示の真ん中にする / Rotate from the current direction. Center the start point so it stays visible.
                     const float dx = static_cast<float>(end.x - start.x);
                     const float dy = static_cast<float>(end.y - start.y);
                     rotate_radius = std::max(1.0f, std::sqrt(dx * dx + dy * dy));
@@ -985,7 +985,7 @@ int main() {
             }
         }
 
-        // 数える、測る。どちらも、終わるまで画面は止まる
+        // 数える、測る。どちらも、終わるまで画面は止まる / Count and measure. In both cases the screen freezes until done.
         if (key_pressed(canvas, 'F', was_down)) {
             std::printf("counting...\n");
             count_all_lines(60);
@@ -995,7 +995,7 @@ int main() {
             measure_speed();
         }
 
-        // 線を引き直して、違うピクセルの数を出す
+        // 線を引き直して、違うピクセルの数を出す / Redraw the lines and print the number of differing pixels.
         if (dirty) {
             FanStats stats = {0, 0, 0};
             if (scene < scene_line_4) {
@@ -1020,7 +1020,7 @@ int main() {
             print_trace(start, end, dda_trace, bres_trace);
         }
 
-        // 矢印キーで表示の中心を動かす。拡大しているほど、ゆっくり動かす
+        // 矢印キーで表示の中心を動かす。拡大しているほど、ゆっくり動かす / Move the view center with the arrow keys; slower when zoomed in more.
         const int zoom = zoom_levels[zoom_index[scene]];
         const float speed = 160.0f / static_cast<float>(zoom) * canvas.delta_time;
         if (canvas.is_key_down(key_left)) {
@@ -1036,12 +1036,12 @@ int main() {
             center[scene].y += speed;
         }
 
-        // 表示。間の線を残すため、まず灰色で全体を塗る
+        // 表示。間の線を残すため、まず灰色で全体を塗る / Display. To keep the lines between pixels, first fill everything with gray.
         for (Color& pixel : canvas.pixels) {
             pixel = from_hex(0x606060);
         }
         if (scene == scene_side_by_side) {
-            // 左に DDA、右にブレゼンハム。2枚の絵は、同じ位置と倍率で見る
+            // 左に DDA、右にブレゼンハム。2枚の絵は、同じ位置と倍率で見る / DDA left, Bresenham right. Both pictures share position and zoom.
             const int dest_w = (canvas.width - 2) / 2;
             center[scene] = clamp_center(center[scene], zoom, dest_w, canvas.height, dda_image);
             const View left_view = make_view(0, 0, dest_w, canvas.height, center[scene], zoom);

@@ -1,19 +1,19 @@
-// 番外編「塗りのルール」の実験用プログラム
-// ラスタライザー編 #04 の三角形の塗り方に、ルールの切り替えと、拡大表示を足したもの
+// 番外編「塗りのルール」の実験用プログラム / Experiment program for the extra episode "The Fill Rule".
+// ラスタライザー編 #04 の三角形の塗り方に、ルールの切り替えと、拡大表示を足したもの / The triangle fill from #04, plus rule switching and a zoomed display.
 //
-// 操作
-//   1〜5 … 絵を選ぶ（1: 顔、2: 幅 15 の板、3: メッシュ、4: 扇、5: 整数の位置の四角形）
-//   T    … 左上ルール（規格どおり）
-//   B    … 右下ルール（逆向き）
-//   G    … 「> 0」だけを塗る（辺の上ぴったりは、どの三角形も塗らない）
-//   E    … 「>= 0」を塗る（辺の上ぴったりは、どの三角形も塗る）
-//   V    … 表示の切り替え（ひとつ → 左右に並べる → 違いを赤で表示）
-//   Z, X … 拡大、縮小
-//   矢印 … 表示する場所を動かす
-//   C    … ピクセルの境目と、ピクセルの中心の印を出す（拡大が 8 倍以上のとき）
-//   W    … 三角形のふちの線を重ねる
-//   A    … 塗った回数を足し算で表示する（二重に塗られたピクセルが明るくなる）
-//   Esc  … 終わる
+// 操作 / Controls.
+//   1〜5 … 絵を選ぶ（1: 顔、2: 幅 15 の板、3: メッシュ、4: 扇、5: 整数の位置の四角形） / Choose a picture (1: face, 2: board of width 15, 3: mesh, 4: fan, 5: integer square).
+//   T    … 左上ルール（規格どおり） / Top-left rule (the standard way).
+//   B    … 右下ルール（逆向き） / Bottom-right rule (the opposite way).
+//   G    … 「> 0」だけを塗る（辺の上ぴったりは、どの三角形も塗らない） / Fill only "> 0" (a pixel exactly on an edge is filled by no triangle).
+//   E    … 「>= 0」を塗る（辺の上ぴったりは、どの三角形も塗る） / Fill ">= 0" (a pixel exactly on an edge is filled by every triangle).
+//   V    … 表示の切り替え（ひとつ → 左右に並べる → 違いを赤で表示） / Switch the display (single, side by side, differences in red).
+//   Z, X … 拡大、縮小 / Zoom in, zoom out.
+//   矢印 … 表示する場所を動かす / Move the displayed area with the arrow keys.
+//   C    … ピクセルの境目と、ピクセルの中心の印を出す（拡大が 8 倍以上のとき） / Show pixel borders and pixel center markers (when zoom is 8x or more).
+//   W    … 三角形のふちの線を重ねる / Overlay the outlines of the triangles.
+//   A    … 塗った回数を足し算で表示する（二重に塗られたピクセルが明るくなる） / Show the fill count by adding (double-drawn pixels get brighter).
+//   Esc  … 終わる / Quit.
 
 #include <algorithm>
 #include <cmath>
@@ -26,7 +26,7 @@
 
 #include "framework/canvas.h"
 
-// 画面上の位置。ピクセルの間の位置も表せるように、小数で持つ
+// 画面上の位置。ピクセルの間の位置も表せるように、小数で持つ / Position on the screen. Stored as floats so it can also be between pixels.
 struct Vec2 {
     float x;
     float y;
@@ -39,8 +39,8 @@ struct Triangle {
     Color color;
 };
 
-// 絵を描く先。Canvas と同じ並びのピクセルに加えて、各ピクセルを何回塗ったかを覚える
-// 回数は、ルールの違いや、二重塗り・すき間を調べるために使う
+// 絵を描く先。Canvas と同じ並びのピクセルに加えて、各ピクセルを何回塗ったかを覚える / Target picture: Canvas-like pixels plus a fill count per pixel.
+// 回数は、ルールの違いや、二重塗り・すき間を調べるために使う / The counts are used to examine rule differences, double-drawn pixels, and gaps.
 struct Image {
     int width;
     int height;
@@ -48,31 +48,31 @@ struct Image {
     std::vector<int> counts;
 };
 
-// 辺の上ぴったりのピクセルを、どう扱うか
+// 辺の上ぴったりのピクセルを、どう扱うか / How to handle a pixel exactly on an edge.
 enum class FillRule {
-    top_left,          // 上の辺と左の辺の上だけ塗る（Direct3D の規格）
-    bottom_right,      // 下の辺と右の辺の上だけ塗る（逆向き）
-    greater,           // 辺の上は、どの三角形も塗らない（> 0）
-    greater_or_equal,  // 辺の上は、どの三角形も塗る（>= 0）
+    top_left,          // 上の辺と左の辺の上だけ塗る（Direct3D の規格） / Fill only on top and left edges (the Direct3D standard).
+    bottom_right,      // 下の辺と右の辺の上だけ塗る（逆向き） / Fill only on bottom and right edges (the opposite way).
+    greater,           // 辺の上は、どの三角形も塗らない（> 0） / Pixels on an edge are filled by no triangle (> 0).
+    greater_or_equal,  // 辺の上は、どの三角形も塗る（>= 0） / Pixels on an edge are filled by every triangle (>= 0).
 };
 
-// 絵の大きさ。拡大して見るので、小さくしてある
+// 絵の大きさ。拡大して見るので、小さくしてある / Size of the picture. It is small because we view it zoomed in.
 const int scene_width = 160;
 const int scene_height = 90;
 const int scene_count = 5;
 
-// 表示する範囲。canvas のどこに、絵のどこを、何倍で出すか
+// 表示する範囲。canvas のどこに、絵のどこを、何倍で出すか / The displayed area: where on canvas, which part of the picture, and at what zoom.
 struct View {
-    int dest_x;  // canvas の上の位置と大きさ
+    int dest_x;  // canvas の上の位置と大きさ / Position and size on canvas.
     int dest_y;
     int dest_w;
     int dest_h;
-    int view_x;  // dest の左上に出す、絵のピクセル
+    int view_x;  // dest の左上に出す、絵のピクセル / The picture pixel shown at the top left of dest.
     int view_y;
     int zoom;
 };
 
-// 0xRRGGBB の形の数を Color にする
+// 0xRRGGBB の形の数を Color にする / Turn a 0xRRGGBB number into a Color.
 Color from_hex(uint32_t hex) {
     const uint8_t r = static_cast<uint8_t>((hex >> 16) & 0xFF);
     const uint8_t g = static_cast<uint8_t>((hex >> 8) & 0xFF);
@@ -80,7 +80,7 @@ Color from_hex(uint32_t hex) {
     return Color{r, g, b};
 }
 
-// 色の明るさをずらす。三角形を見分けやすいように、隣どうしで少し色を変えるために使う
+// 色の明るさをずらす。三角形を見分けやすいように、隣どうしで少し色を変えるために使う / Shift the brightness of a color, to tell neighboring triangles apart.
 Color shade(Color color, int delta) {
     return Color{
         static_cast<uint8_t>(std::clamp(color.r + delta, 0, 255)),
@@ -99,7 +99,7 @@ void clear_image(Image& image, Color color) {
     std::fill(image.counts.begin(), image.counts.end(), 0);
 }
 
-// (x, y) のピクセルを color にする。塗った回数も 1 増やす
+// (x, y) のピクセルを color にする。塗った回数も 1 増やす / Set the pixel at (x, y) to color. Also add 1 to the fill count.
 void set_pixel(Image& image, int x, int y, Color color) {
     if (x < 0 || x >= image.width || y < 0 || y >= image.height) {
         return;
@@ -108,8 +108,8 @@ void set_pixel(Image& image, int x, int y, Color color) {
     image.counts[y * image.width + x] += 1;
 }
 
-// (x, y) のピクセルに color を足す。255 を超える分は 255 で止める
-// 二重に塗られたピクセルだけが、足し算で明るくなる
+// (x, y) のピクセルに color を足す。255 を超える分は 255 で止める / Add color to the pixel at (x, y), clamping at 255.
+// 二重に塗られたピクセルだけが、足し算で明るくなる / Only double-drawn pixels get brighter by the addition.
 void add_pixel(Image& image, int x, int y, Color color) {
     if (x < 0 || x >= image.width || y < 0 || y >= image.height) {
         return;
@@ -121,30 +121,30 @@ void add_pixel(Image& image, int x, int y, Color color) {
     image.counts[y * image.width + x] += 1;
 }
 
-// a から b へ向かう線から見て、p が右にあればプラス、左にあればマイナス、線の上なら 0 を返す
-// 右と左は、画面に映った向きのまま。画面の y は下向きなので、数学の教科書の図とは逆に見える
+// a から b へ向かう線から見て、p が右にあればプラス、左にあればマイナス、線の上なら 0 を返す / p right of the a-to-b line: positive; left: negative; on it: 0.
+// 右と左は、画面に映った向きのまま。画面の y は下向きなので、数学の教科書の図とは逆に見える / Right/left as seen on screen. Screen y points down, so it looks reversed from math books.
 float edge_function(Vec2 a, Vec2 b, Vec2 p) {
     return (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
 }
 
-// 三角形の辺 a → b が、上の辺か左の辺かを返す
-// 頂点が画面の上で時計回りなら、三角形の中は、進む向きから見て右側にある
-// 右へ進む水平な辺は、中が下にあるので上の辺。上へ進む辺は、中が右にあるので左の辺
+// 三角形の辺 a → b が、上の辺か左の辺かを返す / Return whether the triangle edge from a to b is a top edge or a left edge.
+// 頂点が画面の上で時計回りなら、三角形の中は、進む向きから見て右側にある / With clockwise vertices, the inside is on the right as we walk along the edge.
+// 右へ進む水平な辺は、中が下にあるので上の辺。上へ進む辺は、中が右にあるので左の辺 / Edge going right: inside below, so top edge. Edge going up: inside right, so left edge.
 bool is_top_left(Vec2 a, Vec2 b) {
     const bool is_top = (a.y == b.y) && (b.x > a.x);
     const bool is_left = b.y < a.y;
     return is_top || is_left;
 }
 
-// 辺 a → b が、下の辺か右の辺かを返す。is_top_left の逆向き
-// 水平な辺は、左へ進むと下の辺。下へ進む辺は、中が左にあるので右の辺
+// 辺 a → b が、下の辺か右の辺かを返す。is_top_left の逆向き / Whether edge a to b is a bottom or right edge. The reverse of is_top_left.
+// 水平な辺は、左へ進むと下の辺。下へ進む辺は、中が左にあるので右の辺 / Edge going left: bottom edge. Edge going down: inside is left, so right edge.
 bool is_bottom_right(Vec2 a, Vec2 b) {
     const bool is_bottom = (a.y == b.y) && (b.x < a.x);
     const bool is_right = b.y > a.y;
     return is_bottom || is_right;
 }
 
-// 辺 a → b の上ぴったり（辺の値が 0）のピクセルを、この三角形のものにするか
+// 辺 a → b の上ぴったり（辺の値が 0）のピクセルを、この三角形のものにするか / Whether this triangle owns a pixel exactly on edge a to b (edge value 0).
 bool owns_edge(FillRule rule, Vec2 a, Vec2 b) {
     switch (rule) {
         case FillRule::top_left:
@@ -159,8 +159,8 @@ bool owns_edge(FillRule rule, Vec2 a, Vec2 b) {
     return false;
 }
 
-// 辺の値 e が、三角形の内側かを返す
-// 0 より大きければ中。ちょうど 0（線の上）は、ルールで決まった辺の上だけ自分のものにする
+// 辺の値 e が、三角形の内側かを返す / Return whether the edge value e is inside the triangle.
+// 0 より大きければ中。ちょうど 0（線の上）は、ルールで決まった辺の上だけ自分のものにする / Above 0: inside. Exactly 0 (on the line): ours only on rule edges.
 bool covers(float e, bool owns) {
     if (e > 0.0f) {
         return true;
@@ -168,20 +168,20 @@ bool covers(float e, bool owns) {
     return e == 0.0f && owns;
 }
 
-// triangle の中を、rule に従って塗る。色は三角形ごとに1色
-// additive が true のときは、塗る代わりに足す。二重に塗られた場所が明るくなる
+// triangle の中を、rule に従って塗る。色は三角形ごとに1色 / Fill the inside of triangle by rule. One color per triangle.
+// additive が true のときは、塗る代わりに足す。二重に塗られた場所が明るくなる / If additive, add instead of fill. Double-drawn spots get brighter.
 void fill_triangle(Image& image, const Triangle& triangle, FillRule rule, bool additive) {
     const Vec2 a = triangle.a;
     const Vec2 b = triangle.b;
     const Vec2 c = triangle.c;
 
-    // 頂点は、画面の上で時計回りに並べる。反時計回りだと面積がマイナスになり、何も塗られない
+    // 頂点は、画面の上で時計回りに並べる。反時計回りだと面積がマイナスになり、何も塗られない / Vertices go clockwise on screen. Counterclockwise gives negative area: nothing is filled.
     const float area = edge_function(a, b, c);
     if (area <= 0.0f) {
         return;
     }
 
-    // 三角形をぎりぎり囲む四角形を、画面の中に切り詰めて求める
+    // 三角形をぎりぎり囲む四角形を、画面の中に切り詰めて求める / Find the bounding box of the triangle, clamped to the screen.
     const float last_x = static_cast<float>(image.width - 1);
     const float last_y = static_cast<float>(image.height - 1);
     const float box_min_x = std::clamp(std::min(a.x, std::min(b.x, c.x)), 0.0f, last_x);
@@ -194,14 +194,14 @@ void fill_triangle(Image& image, const Triangle& triangle, FillRule rule, bool a
     const int min_y = static_cast<int>(std::floor(box_min_y));
     const int max_y = static_cast<int>(std::ceil(box_max_y));
 
-    // 3本の辺の上ぴったりを、この三角形が塗るか。三角形ごとに1回決めれば足りる
+    // 3本の辺の上ぴったりを、この三角形が塗るか。三角形ごとに1回決めれば足りる / Whether this triangle fills each edge's pixels. Decide once per triangle.
     const bool owns0 = owns_edge(rule, b, c);
     const bool owns1 = owns_edge(rule, c, a);
     const bool owns2 = owns_edge(rule, a, b);
 
     for (int y = min_y; y <= max_y; y++) {
         for (int x = min_x; x <= max_x; x++) {
-            // ピクセルを代表する点は、マスの真ん中（+0.5）にする
+            // ピクセルを代表する点は、マスの真ん中（+0.5）にする / The point that represents a pixel is the center of its square (+0.5).
             const Vec2 p = {static_cast<float>(x) + 0.5f, static_cast<float>(y) + 0.5f};
 
             const float e0 = edge_function(b, c, p);
@@ -219,9 +219,9 @@ void fill_triangle(Image& image, const Triangle& triangle, FillRule rule, bool a
     }
 }
 
-// 絵を描き直す。背景を塗ってから、三角形を順に塗る
-// additive のときは、どの三角形も同じ暗い灰色にして、足し算で塗る
-// 1回塗られたところは暗い灰色、2回塗られたところは明るい灰色、抜けたところは背景のまま
+// 絵を描き直す。背景を塗ってから、三角形を順に塗る / Redraw the picture: fill the background, then fill the triangles in order.
+// additive のときは、どの三角形も同じ暗い灰色にして、足し算で塗る / With additive, every triangle is the same dark gray and is added.
+// 1回塗られたところは暗い灰色、2回塗られたところは明るい灰色、抜けたところは背景のまま / Once: dark gray. Twice: light gray. Missed (a gap): background stays.
 void render_scene(Image& image, const std::vector<Triangle>& triangles, FillRule rule, bool additive) {
     clear_image(image, from_hex(0x101030));
     for (const Triangle& triangle : triangles) {
@@ -233,7 +233,7 @@ void render_scene(Image& image, const std::vector<Triangle>& triangles, FillRule
     }
 }
 
-// 三角形を追加する。画面の上で反時計回りだったら、b と c を入れ替えて時計回りにする
+// 三角形を追加する。画面の上で反時計回りだったら、b と c を入れ替えて時計回りにする / Add a triangle; swap b and c if counterclockwise to make it clockwise.
 void add_triangle(std::vector<Triangle>& triangles, Vec2 a, Vec2 b, Vec2 c, Color color) {
     if (edge_function(a, b, c) < 0.0f) {
         std::swap(b, c);
@@ -241,28 +241,28 @@ void add_triangle(std::vector<Triangle>& triangles, Vec2 a, Vec2 b, Vec2 c, Colo
     triangles.push_back(Triangle{a, b, c, color});
 }
 
-// 四角形を、対角線で三角形2つに分けて追加する。頂点は左上、右上、右下、左下の順
+// 四角形を、対角線で三角形2つに分けて追加する。頂点は左上、右上、右下、左下の順 / Add a quad as 2 triangles. Vertex order: top left, top right, bottom right, bottom left.
 void add_quad(std::vector<Triangle>& triangles, Vec2 left_top, Vec2 right_top, Vec2 right_bottom, Vec2 left_bottom, Color color_a, Color color_b) {
     add_triangle(triangles, left_top, right_top, right_bottom, color_a);
     add_triangle(triangles, left_top, right_bottom, left_bottom, color_b);
 }
 
-// 0.5 刻みの位置にそろえる
-// 位置が 0.5 の倍数なら、辺の値の計算が小数のままでも誤差なしで済む
+// 0.5 刻みの位置にそろえる / Snap to positions in steps of 0.5.
+// 位置が 0.5 の倍数なら、辺の値の計算が小数のままでも誤差なしで済む / If positions are multiples of 0.5, edge values are exact even as floats.
 float snap_half(float value) {
     return std::round(value * 2.0f) / 2.0f;
 }
 
-// 絵 1：三角形でできた、ネコのような顔
-// 中心から外へ、3つの輪を作って三角形で埋める。どの三角形も重ならず、すき間もない
+// 絵 1：三角形でできた、ネコのような顔 / Picture 1: a cat-like face made of triangles.
+// 中心から外へ、3つの輪を作って三角形で埋める。どの三角形も重ならず、すき間もない / 3 rings from the center out, filled with triangles. No overlaps, no gaps.
 void build_face(std::vector<Triangle>& triangles) {
     const int sectors = 16;
     const Vec2 center = {80.0f, 50.0f};
     const float radii[3] = {14.0f, 28.0f, 42.0f};
-    const float squash = 0.85f;  // 縦を少しつぶして、横長の顔にする
+    const float squash = 0.85f;  // 縦を少しつぶして、横長の顔にする / Squash vertically a little to make a wide face.
     const float pi = std::numbers::pi_v<float>;
 
-    // 輪の上の点。隣の三角形と共有する点は、ここで1回だけ計算して使い回す
+    // 輪の上の点。隣の三角形と共有する点は、ここで1回だけ計算して使い回す / Points on the rings. Shared points are computed once here and reused.
     Vec2 ring[3][sectors];
     for (int k = 0; k < 3; k++) {
         for (int s = 0; s < sectors; s++) {
@@ -279,9 +279,9 @@ void build_face(std::vector<Triangle>& triangles) {
     const Color mouth = from_hex(0x903030);
     const Color ear = from_hex(0xD07828);
 
-    int n = 0;  // 何番目の三角形か。偶数と奇数で明るさを変える
+    int n = 0;  // 何番目の三角形か。偶数と奇数で明るさを変える / The index of the triangle. Even and odd get different brightness.
 
-    // 中心の扇。下の2枚を鼻にする
+    // 中心の扇。下の2枚を鼻にする / The fan at the center. The 2 bottom triangles become the nose.
     for (int s = 0; s < sectors; s++) {
         const int next = (s + 1) % sectors;
         const Color color = (s == 3 || s == 4) ? nose : fur_light;
@@ -289,16 +289,16 @@ void build_face(std::vector<Triangle>& triangles) {
         n++;
     }
 
-    // 輪と輪のあいだの帯。四角形を三角形2つに分ける
+    // 輪と輪のあいだの帯。四角形を三角形2つに分ける / The band between rings. Split each quad into 2 triangles.
     for (int k = 0; k < 2; k++) {
         for (int s = 0; s < sectors; s++) {
             const int next = (s + 1) % sectors;
             Color color = (k == 0) ? fur_light : fur_dark;
             if (k == 0 && (s == 10 || s == 13)) {
-                color = eye;  // 左右の上のほうの2マスを目にする
+                color = eye;  // 左右の上のほうの2マスを目にする / The 2 upper cells, left and right, become the eyes.
             }
             if (k == 1 && (s == 3 || s == 4)) {
-                color = mouth;  // 鼻の下の2マスを口にする
+                color = mouth;  // 鼻の下の2マスを口にする / The 2 cells below the nose become the mouth.
             }
             add_triangle(triangles, ring[k][s], ring[k][next], ring[k + 1][next], shade(color, (n % 2 == 0) ? 0 : -14));
             n++;
@@ -307,7 +307,7 @@ void build_face(std::vector<Triangle>& triangles) {
         }
     }
 
-    // 耳。外側の輪の辺を1本ずつ底にして、外へとがらせる
+    // 耳。外側の輪の辺を1本ずつ底にして、外へとがらせる / Ears: take one edge of the outer ring as the base and point it outward.
     const float ear_angle_left = 2.0f * pi * 10.5f / static_cast<float>(sectors);
     const float ear_angle_right = 2.0f * pi * 13.5f / static_cast<float>(sectors);
     const float ear_length = radii[2] * 1.45f;
@@ -317,9 +317,9 @@ void build_face(std::vector<Triangle>& triangles) {
     add_triangle(triangles, ring[2][13], tip_right, ring[2][14], ear);
 }
 
-// 絵 2：幅 15 の板。真ん中ぞろえで置くと、ふちが x.5 の位置に来る
-// 絵の幅 160 の真ん中は 80。80 ± 7.5 で、72.5 と 87.5 になる
-// 高さも 15 にして、縦のふちも .5 に置く（真ん中は 45）
+// 絵 2：幅 15 の板。真ん中ぞろえで置くと、ふちが x.5 の位置に来る / Picture 2: a board of width 15. Centered, its edges land at x.5 positions.
+// 絵の幅 160 の真ん中は 80。80 ± 7.5 で、72.5 と 87.5 になる / The center of width 160 is 80. 80 +/- 7.5 gives 72.5 and 87.5.
+// 高さも 15 にして、縦のふちも .5 に置く（真ん中は 45） / Make the height 15 too, so the edges in y also sit at .5 (the center is 45).
 void build_banner(std::vector<Triangle>& triangles) {
     const float left = static_cast<float>(scene_width) / 2.0f - 7.5f;
     const float right = static_cast<float>(scene_width) / 2.0f + 7.5f;
@@ -328,14 +328,14 @@ void build_banner(std::vector<Triangle>& triangles) {
     add_quad(triangles, Vec2{left, top}, Vec2{right, top}, Vec2{right, bottom}, Vec2{left, bottom}, from_hex(0x40A0E0), from_hex(0xE0A040));
 }
 
-// 絵 3：頂点がすべてピクセルの中心（x.5, y.5）に乗っているメッシュ
-// 8角形の宝石のような形。上下は水平、左右は垂直、角は 45 度で切り落としてある
-// 中の頂点は、整数だけずらして、辺の向きをばらばらにする（ずらしても中心の位置のまま）
+// 絵 3：頂点がすべてピクセルの中心（x.5, y.5）に乗っているメッシュ / Picture 3: a mesh whose vertices all sit on pixel centers (x.5, y.5).
+// 8角形の宝石のような形。上下は水平、左右は垂直、角は 45 度で切り落としてある / A gem-like octagon: horizontal top and bottom, vertical sides, corners cut at 45 degrees.
+// 中の頂点は、整数だけずらして、辺の向きをばらばらにする（ずらしても中心の位置のまま） / Shift inner vertices by integers: edge directions vary, centers stay.
 void build_lattice(std::vector<Triangle>& triangles) {
     const int columns = 9;
     const int rows = 6;
     const float spacing = 14.0f;
-    const float bulge[rows] = {0.0f, 14.0f, 14.0f, 14.0f, 14.0f, 0.0f};  // 左右のふちを外へ出す量
+    const float bulge[rows] = {0.0f, 14.0f, 14.0f, 14.0f, 14.0f, 0.0f};  // 左右のふちを外へ出す量 / Amount the sides bulge out.
 
     Vec2 grid[rows][columns];
     for (int j = 0; j < rows; j++) {
@@ -364,11 +364,11 @@ void build_lattice(std::vector<Triangle>& triangles) {
             const Vec2 p11 = grid[j + 1][i + 1];
             const Vec2 p01 = grid[j + 1][i];
 
-            // 場所によって色を変える。三角形2つのあいだでも明るさを変える
+            // 場所によって色を変える。三角形2つのあいだでも明るさを変える / Vary the color by place, and the brightness between the 2 triangles too.
             const Color color = from_hex(0x3050A0 + static_cast<uint32_t>(i * 0x100000 + j * 0x001400));
             const Color color_b = shade(color, 24);
 
-            // 対角線の向きを、マスごとに入れ替える
+            // 対角線の向きを、マスごとに入れ替える / Flip the diagonal direction cell by cell.
             if ((i + j) % 2 == 0) {
                 add_triangle(triangles, p00, p10, p11, color);
                 add_triangle(triangles, p00, p11, p01, color_b);
@@ -380,8 +380,8 @@ void build_lattice(std::vector<Triangle>& triangles) {
     }
 }
 
-// 絵 4：扇。12 枚の三角形が、ピクセルの中心に乗った1つの頂点を共有する
-// 共有する頂点のピクセルを、何枚が塗るかを見る
+// 絵 4：扇。12 枚の三角形が、ピクセルの中心に乗った1つの頂点を共有する / Picture 4: a fan. 12 triangles share one vertex that sits on a pixel center.
+// 共有する頂点のピクセルを、何枚が塗るかを見る / We check how many triangles fill the pixel of the shared vertex.
 void build_fan(std::vector<Triangle>& triangles) {
     const Vec2 center = {80.5f, 45.5f};
     const Vec2 offsets[12] = {
@@ -399,8 +399,8 @@ void build_fan(std::vector<Triangle>& triangles) {
     }
 }
 
-// 絵 5：頂点が整数の位置にある正方形（40, 5）〜（120, 85）
-// ふちはピクセルの中心を通らない（対角線だけは、45 度なので通る）
+// 絵 5：頂点が整数の位置にある正方形（40, 5）〜（120, 85） / Picture 5: a square with vertices at integer positions, (40, 5) to (120, 85).
+// ふちはピクセルの中心を通らない（対角線だけは、45 度なので通る） / Edges miss pixel centers (only the 45-degree diagonal passes through them).
 void build_square(std::vector<Triangle>& triangles) {
     add_quad(triangles, Vec2{40.0f, 5.0f}, Vec2{120.0f, 5.0f}, Vec2{120.0f, 85.0f}, Vec2{40.0f, 85.0f}, from_hex(0xE06060), from_hex(0x6080E0));
 }
@@ -467,7 +467,7 @@ const char* view_name(int view_mode) {
     }
 }
 
-// キーが押された瞬間だけ true を返す。押しっぱなしでは1回しか反応しない
+// キーが押された瞬間だけ true を返す。押しっぱなしでは1回しか反応しない / Return true only on the frame the key is pressed. Holding it reacts once.
 bool key_pressed(Canvas& canvas, int key, bool was_down[]) {
     const bool is_down = canvas.is_key_down(key);
     const bool pressed = is_down && !was_down[key];
@@ -475,7 +475,7 @@ bool key_pressed(Canvas& canvas, int key, bool was_down[]) {
     return pressed;
 }
 
-// canvas の (x, y) を color にする。範囲の外は何もしない
+// canvas の (x, y) を color にする。範囲の外は何もしない / Set (x, y) on canvas to color. Do nothing outside the range.
 void put_pixel(Canvas& canvas, int x, int y, Color color) {
     if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
         return;
@@ -483,21 +483,21 @@ void put_pixel(Canvas& canvas, int x, int y, Color color) {
     canvas.pixels[y * canvas.width + x] = color;
 }
 
-// image の view で決めた範囲を、canvas に拡大して出す
-// show_diff が true のときは、image と other で塗られ方が違うピクセルを赤にする（ほかは暗くする）
+// image の view で決めた範囲を、canvas に拡大して出す / Show the area of image chosen by view on canvas, zoomed in.
+// show_diff が true のときは、image と other で塗られ方が違うピクセルを赤にする（ほかは暗くする） / show_diff: pixels differing between image and other turn red; the rest dim.
 void draw_view(Canvas& canvas, const Image& image, const Image& other, bool show_diff, const View& view, bool show_guides) {
-    // 拡大が小さいときは、ピクセルの境目の線が絵をつぶすので、出さない
+    // 拡大が小さいときは、ピクセルの境目の線が絵をつぶすので、出さない / At low zoom, hide pixel border lines because they would swallow the picture.
     const bool guides = show_guides && view.zoom >= 8;
 
     for (int v = 0; v < view.dest_h; v++) {
         for (int u = 0; u < view.dest_w; u++) {
-            // 絵のどのピクセルか。bx, by は、そのピクセルを拡大したマスの中の位置
+            // 絵のどのピクセルか。bx, by は、そのピクセルを拡大したマスの中の位置 / The picture pixel. bx, by: position inside its zoomed square.
             const int sx = view.view_x + u / view.zoom;
             const int sy = view.view_y + v / view.zoom;
             const int bx = u % view.zoom;
             const int by = v % view.zoom;
 
-            // 絵の外は灰色にする
+            // 絵の外は灰色にする / Outside the picture is gray.
             Color color = from_hex(0x282828);
             if (sx >= 0 && sx < image.width && sy >= 0 && sy < image.height) {
                 const int i = sy * image.width + sx;
@@ -515,7 +515,7 @@ void draw_view(Canvas& canvas, const Image& image, const Image& other, bool show
                     if (bx == 0 || by == 0) {
                         color = from_hex(0x505070);
                     } else if (std::abs(2 * bx + 1 - view.zoom) <= 1 && std::abs(2 * by + 1 - view.zoom) <= 1) {
-                        // マスの真ん中（ピクセルの中心）。どんな色の上でも見えるように、色を反転する
+                        // マスの真ん中（ピクセルの中心）。どんな色の上でも見えるように、色を反転する / Pixel center. Invert the color to show on any color.
                         color = Color{static_cast<uint8_t>(255 - color.r), static_cast<uint8_t>(255 - color.g), static_cast<uint8_t>(255 - color.b)};
                     }
                 }
@@ -525,7 +525,7 @@ void draw_view(Canvas& canvas, const Image& image, const Image& other, bool show
     }
 }
 
-// 絵の上の位置 p が、canvas のどこに当たるか。ピクセルの中心（x + 0.5）は、拡大したマスの真ん中に来る
+// 絵の上の位置 p が、canvas のどこに当たるか。ピクセルの中心（x + 0.5）は、拡大したマスの真ん中に来る / Where picture position p lands on canvas. A pixel center (x + 0.5) is mid-square.
 Vec2 to_canvas(const View& view, Vec2 p) {
     return Vec2{
         static_cast<float>(view.dest_x) + (p.x - static_cast<float>(view.view_x)) * static_cast<float>(view.zoom),
@@ -533,12 +533,12 @@ Vec2 to_canvas(const View& view, Vec2 p) {
     };
 }
 
-// canvas の上に、a から b まで線を引く。view の範囲の外には引かない
+// canvas の上に、a から b まで線を引く。view の範囲の外には引かない / Draw a line from a to b on canvas. Do not draw outside the view area.
 void draw_wire_line(Canvas& canvas, const View& view, Vec2 a, Vec2 b, Color color) {
     const float dx = b.x - a.x;
     const float dy = b.y - a.y;
     const float length = std::max(std::abs(dx), std::abs(dy));
-    // とても大きい値だと繰り返しが長くなるので、画面の大きさで打ち切る
+    // とても大きい値だと繰り返しが長くなるので、画面の大きさで打ち切る / A huge value makes the loop long, so cut it off at the screen size.
     if (length > 20000.0f) {
         return;
     }
@@ -553,7 +553,7 @@ void draw_wire_line(Canvas& canvas, const View& view, Vec2 a, Vec2 b, Color colo
     }
 }
 
-// 三角形のふちを、本当の位置（小数のまま）で重ねて描く
+// 三角形のふちを、本当の位置（小数のまま）で重ねて描く / Draw the triangle outlines on top at their true positions (as floats).
 void draw_wireframe(Canvas& canvas, const std::vector<Triangle>& triangles, const View& view) {
     const Color color = from_hex(0xFFFF00);
     for (const Triangle& triangle : triangles) {
@@ -566,7 +566,7 @@ void draw_wireframe(Canvas& canvas, const std::vector<Triangle>& triangles, cons
     }
 }
 
-// dest の真ん中に center が来るように、view_x, view_y を決める
+// dest の真ん中に center が来るように、view_x, view_y を決める / Choose view_x, view_y so that center is at the middle of dest.
 View make_view(int dest_x, int dest_y, int dest_w, int dest_h, Vec2 center, int zoom) {
     const float half_w = static_cast<float>(dest_w) / (2.0f * static_cast<float>(zoom));
     const float half_h = static_cast<float>(dest_h) / (2.0f * static_cast<float>(zoom));
@@ -581,7 +581,7 @@ View make_view(int dest_x, int dest_y, int dest_w, int dest_h, Vec2 center, int 
     };
 }
 
-// 画面の左下に、今のルールを色で示す。選ばれているルールだけ明るい
+// 画面の左下に、今のルールを色で示す。選ばれているルールだけ明るい / Show the current rule by color at the bottom left. Only the chosen rule is bright.
 void draw_rule_indicator(Canvas& canvas, FillRule rule) {
     const Color colors[4] = {from_hex(0x40E040), from_hex(0xFF9020), from_hex(0xC060FF), from_hex(0x40D0FF)};
     const FillRule rules[4] = {FillRule::top_left, FillRule::bottom_right, FillRule::greater, FillRule::greater_or_equal};
@@ -596,7 +596,7 @@ void draw_rule_indicator(Canvas& canvas, FillRule rule) {
 }
 
 int main() {
-    Canvas canvas(320, 180, 4);  // 320×180 の絵を、4倍に拡大して表示する
+    Canvas canvas(320, 180, 4);  // 320×180 の絵を、4倍に拡大して表示する / Draw at 320x180 and show it 4x larger.
 
     Image shown = make_image(scene_width, scene_height);
     Image image_top_left = make_image(scene_width, scene_height);
@@ -626,7 +626,7 @@ int main() {
             break;
         }
 
-        // 絵の切り替え
+        // 絵の切り替え / Switch the picture.
         for (int k = 0; k < scene_count; k++) {
             if (key_pressed(canvas, '1' + k, was_down) && k != scene) {
                 scene = k;
@@ -635,7 +635,7 @@ int main() {
             }
         }
 
-        // ルールの切り替え。変えたときだけ、コンソールに知らせる
+        // ルールの切り替え。変えたときだけ、コンソールに知らせる / Switch the rule. Print to the console only when it changes.
         FillRule new_rule = rule;
         if (key_pressed(canvas, 'T', was_down)) {
             new_rule = FillRule::top_left;
@@ -680,7 +680,7 @@ int main() {
         }
         const int zoom = zoom_levels[zoom_index];
 
-        // 矢印キーで表示の中心を動かす。拡大しているほど、ゆっくり動かす
+        // 矢印キーで表示の中心を動かす。拡大しているほど、ゆっくり動かす / Move the view center with the arrow keys; slower when zoomed in more.
         const float speed = 160.0f / static_cast<float>(zoom) * canvas.delta_time;
         if (canvas.is_key_down(key_left)) {
             center.x -= speed;
@@ -697,12 +697,12 @@ int main() {
         center.x = std::clamp(center.x, 0.0f, static_cast<float>(scene_width));
         center.y = std::clamp(center.y, 0.0f, static_cast<float>(scene_height));
 
-        // 絵を描く。比べる表示のために、2つのルールの絵も毎フレーム描く
+        // 絵を描く。比べる表示のために、2つのルールの絵も毎フレーム描く / Draw the pictures. Both rules are drawn each frame for comparison.
         render_scene(shown, triangles, rule, additive);
         render_scene(image_top_left, triangles, FillRule::top_left, additive);
         render_scene(image_bottom_right, triangles, FillRule::bottom_right, additive);
 
-        // 表示。間の線を残すため、まず灰色で全体を塗る
+        // 表示。間の線を残すため、まず灰色で全体を塗る / Display. To keep the lines between pixels, first fill everything with gray.
         for (Color& pixel : canvas.pixels) {
             pixel = from_hex(0x606060);
         }
