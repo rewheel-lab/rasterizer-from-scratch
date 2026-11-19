@@ -32,6 +32,8 @@ The `extra/` folder contains the experiment programs used in the extra episodes.
 
 `extra/bresenham` (the extra episode "Bresenham: Drawing Lines with Integers Only") places the line drawing of Rasterizer episode #02 (DDA) next to Bresenham's line algorithm, which draws lines with integers only, and highlights the pixels that differ in red. Keys 1 to 4 switch scenes (1: the #02 fireworks side by side, 2: the same fireworks in one image with the differences in red, 3 and 4: one enlarged line that shows the accumulated error as numbers). V switches the view, and Z, X, and the arrow keys zoom and move. F counts the lines where DDA and Bresenham differ. The full list of keys is in the comment at the top of `main.cpp`.
 
+`extra/matrix_conventions` (the extra episode "OpenGL and DirectX") swaps matrices with different conventions into the Sun, Earth, and Moon of Rasterizer episode #07 to see how the image changes. The matrices are copied from online examples: a right-handed perspective matrix, a translation matrix for row vectors, and a perspective matrix with depth from -1 to 1. Key 1 uses this channel's conventions (the same image as #07), and keys 2 to 7 switch the experiments (2 and 3: the right-handed perspective matrix, 4 and 5: the row-vector matrix and the multiplication order, 6 and 7: the depth of an approaching cube, with depth from 0 to 1 and from -1 to 1). V splits the screen, A shows the world axes, and T prints a table of depth by distance to the console window. Space pauses or resumes, R resets the time to 0, and Esc exits. The full list of keys is in the comment at the top of `main.cpp`.
+
 ## License
 
 This project is licensed under the MIT License. See `LICENSE`. You may modify it and use it in your own projects.
